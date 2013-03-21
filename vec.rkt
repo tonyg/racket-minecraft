@@ -10,6 +10,7 @@
 	 v+
 	 v-
 	 v-dot
+	 v-cross
 	 v*
 	 v-mag
 	 v-norm)
@@ -27,6 +28,13 @@
 (define v- (v-pointwise vector -))
 
 (define v-dot (v-pointwise + *))
+
+(define (v-cross a b)
+  (match-define (vector ax ay az) a)
+  (match-define (vector bx by bz) b)
+  (vector (- (* ay bz) (* az by))
+	  (- (* az bx) (* ax bz))
+	  (- (* ax by) (* ay bx))))
 
 (define (v* scalar a)
   (match-define (vector ax ay az) a)
