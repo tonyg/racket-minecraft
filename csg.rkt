@@ -9,11 +9,21 @@
 
 (provide (all-defined-out))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (empty)
+  (lambda (p) #f))
+
+(define (solid [material1 'stone])
+  (lambda (p) material1))
+
 (define (halfspace normal [material1 'stone] [material2 #f])
   (lambda (p) (if (negative? (v-dot p normal)) material1 material2)))
 
 (define (sphere r [material1 'stone] [material2 #f])
   (lambda (p) (if (< (v-mag p) r) material1 material2)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (scale s g)
   (define d (/ s))
@@ -41,12 +51,24 @@
 			 (v-dot v1 p)
 			 (v-dot v2 p)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define (intersection g1 g2) (lambda (p) (and (g1 p) (g2 p))))
 (define (union g1 g2) (lambda (p) (or (g1 p) (g2 p))))
 (define (subtract a b [material2 #f]) (lambda (p) (if (equal? (b p) material2) (a p) material2)))
 
 (define (negate g [material1 'stone] [material2 #f])
   (lambda (p) (if (equal? (g p) material2) material1 material2)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (plane normal [material1 'stone] [material2 #f])
+  (union (intersection (halfspace normal material1)
+		       (translate (v* -1 (v-norm normal))
+				  (halfspace normal #f material1)))
+	 (solid material2)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (render! p1 p2 g f)
   (define c1 ((v-pointwise vector min) p1 p2))
@@ -70,8 +92,5 @@
 			 (loop-lo z-hi))))
 	    (loop-lo (+ z-lo 1)))))))
 
-(define (render-blocks! c p1 p2 g)
-  (render! p1 p2 g
-	   (lambda (p1 p2 type-id)
-	     ;;(printf "Setting ~v - ~v to ~v...~n" p1 p2 type-id)
-	     (minecraft-set-blocks c p1 p2 type-id))))
+(define (render-blocks! p1 p2 g)
+  (render! p1 p2 g minecraft-set-blocks))
