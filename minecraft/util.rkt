@@ -57,9 +57,12 @@
   (define-values (p q) (base-points/axis type-id))
   (define frontvec (v- q p))
   (define original-frontvec (r 'orientation))
-  (define angle (rad->deg (acos (v-dot original-frontvec frontvec))))
+  (define raw-angle (rad->deg (acos (v-dot original-frontvec frontvec))))
+  (define angle (if (positive? (vector-ref (v-cross original-frontvec frontvec) 1))
+		    raw-angle
+		    (- raw-angle)))
   (define rotate-by-angle (v-rotate angle vj))
-  (define extent (rotate-by-angle (r 'extent)))
+  (define extent (rotate-by-angle (v+ (vector -1 -1 -1) (r 'extent))))
   (define pin (rotate-by-angle (r 'pin)))
   (define p1 (v- q pin))
   (define p2 (v+ p1 extent))
@@ -73,4 +76,3 @@
 			       (p1 ,p1)
 			       (p2 ,p2)))
   (render-blocks! p1 p2 (translate p1 (rotate angle vj r))))
-
