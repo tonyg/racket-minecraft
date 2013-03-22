@@ -3,7 +3,7 @@ COLLECTIONS=minecraft
 all: setup
 
 clean:
-	rm -rf compiled doc
+	find . -name compiled -type d | xargs rm -rf
 
 setup:
 	raco setup $(COLLECTIONS)
