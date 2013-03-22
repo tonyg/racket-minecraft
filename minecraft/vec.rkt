@@ -2,7 +2,7 @@
 ;; Utilities for treating (Vector Number Number Number) as a 3-space vector
 
 (require racket/match)
-(require (only-in racket/math pi exact-floor exact-ceiling exact-truncate))
+(require (only-in racket/math pi exact-floor exact-ceiling exact-truncate exact-round))
 
 (provide vi
 	 vj
@@ -42,7 +42,7 @@
 (define v-floor (v-pointwise1 vector exact-floor))
 (define v-ceiling (v-pointwise1 vector exact-ceiling))
 (define v-truncate (v-pointwise1 vector exact-truncate))
-(define v-round (v-pointwise1 vector round))
+(define v-round (v-pointwise1 vector exact-round))
 
 (define v-min (v-pointwise vector min))
 (define v-max (v-pointwise vector max))
