@@ -9,6 +9,7 @@
 (require racket/format)
 
 (require "type-id.rkt")
+(require "vec.rkt")
 
 (provide (struct-out minecraft-connection)
 
@@ -26,6 +27,7 @@
 
 	 minecraft-get-block
 	 minecraft-get-block/data
+	 minecraft-get-blocks/data
 	 minecraft-set-block
 	 minecraft-set-blocks
 	 minecraft-get-height
@@ -48,7 +50,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define c current-minecraft-connection)
+(define (c)
+  (when (not (current-minecraft-connection))
+    (minecraft-connect))
+  (current-minecraft-connection))
 
 (define (minecraft-connect [server "localhost"] [port 4711])
   (define-values (in out) (tcp-connect server port))
@@ -60,18 +65,19 @@
   (tcp-abandon-port out)
   (current-minecraft-connection #f))
 
-(define (minecraft-send-line line)
+(define (minecraft-send-line line [flush #t])
   (define out (minecraft-connection-out (c)))
   (display line out)
   (newline out)
-  (flush-output out))
+  (when flush (flush-output out)))
 
 (define (minecraft-read-line)
   (read-line (minecraft-connection-in (c))))
 
-(define (minecraft-send-command cmd)
+(define (minecraft-send-command cmd [flush #t])
   (define cmd-strs (map ~a cmd))
-  (minecraft-send-line (string-append (car cmd-strs) "(" (string-join (cdr cmd-strs) ",") ")")))
+  (minecraft-send-line (string-append (car cmd-strs) "(" (string-join (cdr cmd-strs) ",") ")")
+		       flush))
 
 (define (minecraft-read-numbers)
   (map string->number (string-split (minecraft-read-line) ",")))
@@ -95,26 +101,41 @@
   (match-define (vector x y z) p)
   (minecraft-send-command (list '|world.getBlockWithData| (I x) (I y) (I z)))
   (match-define (list t d) (minecraft-read-numbers))
-  (values t d))
+  (cons t d))
 
-(define (minecraft-set-block p type-id [block-data #f])
+(define (minecraft-get-blocks/data p1 p2)
+  (define c1 (v-min p1 p2))
+  (define c2 (v+ (v-max p1 p2) (vector 1 1 1)))
+  (for* ([x (in-range (vector-ref c1 0) (vector-ref c2 0))]
+	 [y (in-range (vector-ref c1 1) (vector-ref c2 1))]
+	 [z (in-range (vector-ref c1 2) (vector-ref c2 2))])
+    (minecraft-send-command (list '|world.getBlockWithData| (I x) (I y) (I z)) #f))
+  (flush-output (minecraft-connection-out (c)))
+  (values (v- c2 c1)
+	  (for*/hash ([x (in-range (vector-ref c1 0) (vector-ref c2 0))]
+		      [y (in-range (vector-ref c1 1) (vector-ref c2 1))]
+		      [z (in-range (vector-ref c1 2) (vector-ref c2 2))])
+	    (values (v- (vector x y z) c1)
+		    (match (minecraft-read-numbers) [(list t d) (cons t d)])))))
+
+(define (minecraft-set-block p type-id)
   (match-define (vector x y z) p)
   (minecraft-send-command
-   (if block-data
+   (if (pair? type-id)
        (list '|world.setBlock| (I x) (I y) (I z)
-	     (type-id->number type-id)
-	     block-data)
+	     (type-id->number (car type-id))
+	     (cdr type-id))
        (list '|world.setBlock| (I x) (I y) (I z)
 	     (type-id->number type-id)))))
 
-(define (minecraft-set-blocks p1 p2 type-id [block-data #f])
+(define (minecraft-set-blocks p1 p2 type-id)
   (match-define (vector x1 y1 z1) p1)
   (match-define (vector x2 y2 z2) p2)
   (minecraft-send-command
-   (if block-data
+   (if (pair? type-id)
        (list '|world.setBlocks| (I x1) (I y1) (I z1) (I x2) (I y2) (I z2)
-	     (type-id->number type-id)
-	     block-data)
+	     (type-id->number (car type-id))
+	     (cdr type-id))
        (list '|world.setBlocks| (I x1) (I y1) (I z1) (I x2) (I y2) (I z2)
 	     (type-id->number type-id)))))
 
@@ -168,3 +189,6 @@
 				  ((#t) 1)
 				  ((#f) 0)
 				  (else value)))))
+
+;; (require racket/trace) ;; %%%
+;; (trace minecraft-set-blocks) ;; %%%

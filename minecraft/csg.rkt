@@ -2,7 +2,6 @@
 ;; Constructive Solid Geometry
 
 (require racket/match)
-(require (only-in racket/math pi))
 
 (require "protocol.rkt")
 (require "vec.rkt")
@@ -33,23 +32,8 @@
   (lambda (p) (g (v- p v))))
 
 (define (rotate deg axis g)
-  (match-define (vector l m n) (v-norm axis))
-  (define theta (* pi (/ (- deg) 180.0)))
-  (define c (cos theta))
-  (define s (sin theta))
-  (define nc (- 1 c))
-  (define v0 (vector (+ (* l l nc) c)
-		     (- (* m l nc) (* n s))
-		     (+ (* n l nc) (* m s))))
-  (define v1 (vector (+ (* l m nc) (* n s))
-		     (+ (* m m nc) c)
-		     (- (* n m nc) (* l s))))
-  (define v2 (vector (- (* l n nc) (* m s))
-		     (+ (* m n nc) (* l s))
-		     (+ (* n n nc) c)))
-  (lambda (p) (g (vector (v-dot v0 p)
-			 (v-dot v1 p)
-			 (v-dot v2 p)))))
+  (define r (v-rotate deg axis))
+  (lambda (p) (g (r p))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -70,9 +54,20 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (render! p1 p2 g f)
-  (define c1 ((v-pointwise vector min) p1 p2))
-  (define c2 ((v-pointwise vector max) p1 p2))
+(define (iterate-blocks-singly! p1 p2 g f)
+  (define c1 (v-min p1 p2))
+  (define c2 (v-max p1 p2))
+  (define (test x y z) (g (vector (+ x 0.5) (+ y 0.5) (+ z 0.5))))
+  (for* ([x (in-range (vector-ref c1 0) (vector-ref c2 0))]
+	 [y (in-range (vector-ref c1 1) (vector-ref c2 1))]
+	 [z (in-range (vector-ref c1 2) (vector-ref c2 2))])
+    (define v (test x y z))
+    (when v
+      (f (vector x y z) v))))
+
+(define (iterate-blocks! p1 p2 g f)
+  (define c1 (v-min p1 p2))
+  (define c2 (v-max p1 p2))
   (define zmin (vector-ref c1 2))
   (define zmax (vector-ref c2 2))
   (define (test x y z) (g (vector (+ x 0.5) (+ y 0.5) (+ z 0.5))))
@@ -93,4 +88,32 @@
 	    (loop-lo (+ z-lo 1)))))))
 
 (define (render-blocks! p1 p2 g)
-  (render! p1 p2 g minecraft-set-blocks))
+  (iterate-blocks! p1 p2 g minecraft-set-blocks))
+
+(define (scan p1 p2)
+  (define-values (extent blocks) (minecraft-get-blocks/data p1 p2))
+  (lambda (p)
+    (cond
+     [(eq? p 'blocks) blocks]
+     [(eq? p 'extent) extent]
+     [else
+      (printf "Testing ~v = ~v~n" (v-floor p) (hash-ref blocks (v-floor p) (lambda () #f)))
+      (hash-ref blocks (v-floor p) (lambda () #f))])))
+
+(define (bound extent g)
+  (lambda (p)
+    (cond
+     [(eq? p 'extent) extent]
+     [else (g p)])))
+
+(define (orient frontvec g)
+  (lambda (p)
+    (cond
+     [(eq? p 'orientation) frontvec]
+     [else (g p)])))
+
+(define (pin offset g)
+  (lambda (p)
+    (cond
+     [(eq? p 'pin) offset]
+     [else (g p)])))
