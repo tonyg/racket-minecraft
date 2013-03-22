@@ -32,7 +32,7 @@
   (lambda (p) (g (v- p v))))
 
 (define (rotate deg axis g)
-  (define r (v-rotate deg axis))
+  (define r (v-rotate (- deg) axis))
   (lambda (p) (g (r p))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

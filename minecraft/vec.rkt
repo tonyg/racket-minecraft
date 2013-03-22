@@ -61,7 +61,7 @@
 
 (define (v-rotate deg axis)
   (match-define (vector l m n) (v-norm axis))
-  (define theta (deg->rad (- deg)))
+  (define theta (deg->rad deg))
   (define c (cos theta))
   (define s (sin theta))
   (define nc (- 1 c))
