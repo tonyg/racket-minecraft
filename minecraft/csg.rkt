@@ -97,8 +97,12 @@
      [(eq? p 'blocks) blocks]
      [(eq? p 'extent) extent]
      [else
-      (printf "Testing ~v = ~v~n" (v-floor p) (hash-ref blocks (v-floor p) (lambda () #f)))
-      (hash-ref blocks (v-floor p) (lambda () #f))])))
+      (let ((p (v- p (vector 0.5 0.5 0.5))))
+	(printf "Testing ~v ~v = ~v~n"
+		p
+		(v-round p)
+		(hash-ref blocks (v-round p) (lambda () #f)))
+	(hash-ref blocks (v-round p) (lambda () #f)))])))
 
 (define (bound extent g)
   (lambda (p)
