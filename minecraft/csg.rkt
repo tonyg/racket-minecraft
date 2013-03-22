@@ -58,9 +58,9 @@
   (define c1 (v-min p1 p2))
   (define c2 (v-max p1 p2))
   (define (test x y z) (g (vector (+ x 0.5) (+ y 0.5) (+ z 0.5))))
-  (for* ([x (in-range (vector-ref c1 0) (vector-ref c2 0))]
-	 [y (in-range (vector-ref c1 1) (vector-ref c2 1))]
-	 [z (in-range (vector-ref c1 2) (vector-ref c2 2))])
+  (for* ([x (in-range (vector-ref c1 0) (+ 1 (vector-ref c2 0)))]
+	 [y (in-range (vector-ref c1 1) (+ 1 (vector-ref c2 1)))]
+	 [z (in-range (vector-ref c1 2) (+ 1 (vector-ref c2 2)))])
     (define v (test x y z))
     (when v
       (f (vector x y z) v))))
@@ -69,10 +69,10 @@
   (define c1 (v-min p1 p2))
   (define c2 (v-max p1 p2))
   (define zmin (vector-ref c1 2))
-  (define zmax (vector-ref c2 2))
+  (define zmax (+ 1 (vector-ref c2 2)))
   (define (test x y z) (g (vector (+ x 0.5) (+ y 0.5) (+ z 0.5))))
-  (for* ([x (in-range (vector-ref c1 0) (vector-ref c2 0))]
-	 [y (in-range (vector-ref c1 1) (vector-ref c2 1))])
+  (for* ([x (in-range (vector-ref c1 0) (+ 1 (vector-ref c2 0)))]
+	 [y (in-range (vector-ref c1 1) (+ 1 (vector-ref c2 1)))])
     (let loop-lo ((z-lo zmin))
       (when (< z-lo zmax)
 	(define v-lo (test x y z-lo))
