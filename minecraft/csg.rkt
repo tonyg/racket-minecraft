@@ -1,6 +1,7 @@
 #lang racket/base
 ;; Constructive Solid Geometry
 
+(require racket/math)
 (require racket/match)
 
 (require "protocol.rkt")
@@ -21,6 +22,23 @@
 
 (define (sphere r [material1 'stone] [material2 #f])
   (lambda (p) (if (< (v-mag p) r) material1 material2)))
+
+(define (cylinder r [material1 'stone] [material2 #f])
+  (lambda (p)
+    (match-define (vector x y z) p)
+    (define p1 (vector x 0 z))
+    (if (< (v-mag p1) r) material1 material2)))
+
+(define (fmod x y)
+  (- x (* (floor (/ x y)) y)))
+
+(define (helix thickness pitch [material1 'stone] [material2 #f])
+  (define radians-per-y (/ (* 2 pi) pitch))
+  (define half-thickness (/ thickness 2))
+  (lambda (p)
+    (match-define (vector x y z) p)
+    (define d (fmod (- (atan z x) (* y radians-per-y)) (* 2 pi)))
+    (if (< (- half-thickness) d half-thickness) material1 material2)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
